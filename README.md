@@ -19,15 +19,15 @@ Implementation and scripts for **DCA (Decoupled Conditional Advantage)** for RL-
 
 ## Motivation
 
-**Problem.** When training language models for reasoning with RL (e.g. GRPO), the policy often **overthinks**: it produces correct answers but with unnecessarily long reasoning. Adding a **naive length penalty** to the reward (e.g. \(r = \text{correct} - \gamma \cdot \text{length}\)) often leads to **training collapse** or poor accuracy–efficiency trade-offs.
+**Problem.** When training language models for reasoning with RL (e.g. GRPO), the policy often **overthinks**: it produces correct answers but with unnecessarily long reasoning. Adding a **naive length penalty** to the reward (e.g. $r = \text{correct} - \gamma \cdot \text{length}$) often leads to **training collapse** or poor accuracy–efficiency trade-offs.
 
 **Why naive length penalty fails.**
 
 1. **Dilution of the length baseline.** In a mixed group (some correct, some wrong), only correct responses get a length term. Wrong responses have no length penalty, so they pull down the group mean. Correct but concise responses are then **relatively penalized** for being "shorter" than a distorted baseline, so the effective signal is wrong.
 
-2. **Parameter inefficacy.** When all responses in a group are correct, the advantage is normalized (e.g. \((r - \bar{r}) / \sigma\)). The length coefficient \(\gamma\) gets absorbed by this normalization, so **you cannot stably control length** even when you try to tune \(\gamma\).
+2. **Parameter inefficacy.** When all responses in a group are correct, the advantage is normalized (e.g. $(r - \bar{r}) / \sigma$). The length coefficient $\gamma$ gets absorbed by this normalization, so **you cannot stably control length** even when you try to tune $\gamma$.
 
-**Idea.** **Decouple correctness and efficiency**: keep a 0/1 correctness reward, and compute a **separate length advantage** only **within the set of correct responses**. That way the length baseline is not diluted by wrong answers, and we can control efficiency via a dedicated coefficient \(\beta\).
+**Idea.** **Decouple correctness and efficiency**: keep a 0/1 correctness reward, and compute a **separate length advantage** only **within the set of correct responses**. That way the length baseline is not diluted by wrong answers, and we can control efficiency via a dedicated coefficient $\beta$.
 
 ---
 
@@ -35,34 +35,34 @@ Implementation and scripts for **DCA (Decoupled Conditional Advantage)** for RL-
 
 ### DCA-GRPO (group-relative)
 
-For each prompt we have \(G\) responses with binary correctness \(r_i \in \{0,1\}\) and token lengths \(\ell_i\).
+For each prompt we have $G$ responses with binary correctness $r_i \in \{0,1\}$ and token lengths $\ell_i$.
 
-1. **Accuracy advantage** (over all \(G\)):  
-   \(A^{\text{acc}}_i = (r_i - \bar{r}) / (\sigma_r + \epsilon)\).
+1. **Accuracy advantage** (over all $G$):  
+   $A^{\text{acc}}_i = (r_i - \bar{r}) / (\sigma_r + \epsilon)$.
 
-2. **Length score** (only over correct set \(\mathcal{S}_c\)):  
-   - Z-score within correct responses: \(z_i = (\ell_i - \mu^*_\ell) / (\sigma^*_\ell + \epsilon)\), where \(\mu^*_\ell, \sigma^*_\ell\) are mean and std of \(\{\ell_j : j \in \mathcal{S}_c\}\).  
-   - Bounded score: \(s_i = \sigma(z_i)\) (sigmoid). Shorter correct responses get higher \(s_i\).
+2. **Length score** (only over correct set $\mathcal{S}_c$):  
+   - Z-score within correct responses: $z_i = (\ell_i - \mu^*_\ell) / (\sigma^*_\ell + \epsilon)$, where $\mu^*_\ell, \sigma^*_\ell$ are mean and std of $\{\ell_j : j \in \mathcal{S}_c\}$.  
+   - Bounded score: $s_i = \sigma(z_i)$ (sigmoid). Shorter correct responses get higher $s_i$.
 
-3. **Length advantage** (zero-sum within \(\mathcal{S}_c\)):  
-   \(A^{\text{len}}_i = -(s_i - \bar{s})\) for \(i \in \mathcal{S}_c\), and 0 otherwise. \(\bar{s}\) is the mean of \(s\) over \(\mathcal{S}_c\).
+3. **Length advantage** (zero-sum within $\mathcal{S}_c$):  
+   $A^{\text{len}}_i = -(s_i - \bar{s})$ for $i \in \mathcal{S}_c$, and 0 otherwise. $\bar{s}$ is the mean of $s$ over $\mathcal{S}_c$.
 
 4. **Total advantage:**  
-   \(A_i = A^{\text{acc}}_i + \beta \cdot A^{\text{len}}_i\).  
-   \(\beta\) (e.g. 0.2) trades off accuracy vs efficiency.
+   $A_i = A^{\text{acc}}_i + \beta \cdot A^{\text{len}}_i$.  
+   $\beta$ (e.g. 0.2) trades off accuracy vs efficiency.
 
 **Implementation:** `dca.advantage.advantage_dca_grpo(correct_mask, lengths, beta)`.
 
 ### DCA-RLOO (leave-one-out)
 
-Same length score \(s_i\); accuracy and length advantages use leave-one-out baselines (no normalization). Preferable when group size \(G\) is small.
+Same length score $s_i$; accuracy and length advantages use leave-one-out baselines (no normalization). Preferable when group size $G$ is small.
 
 **Implementation:** `dca.advantage.advantage_dca_rloo(correct_mask, lengths, beta)`.
 
 ### Baselines (for comparison)
 
-- **Vanilla GRPO:** \(A_i = (r_i - \bar{r}) / \sigma_r\), \(r \in \{0,1\}\) (no length).
-- **Coupled length penalty (GRPO+LP):** \(r_i = (1 - \gamma \ell_i)\) if correct else 0, then \(A_i = (r_i - \bar{r}) / \sigma_r\).  
+- **Vanilla GRPO:** $A_i = (r_i - \bar{r}) / \sigma_r$, $r \in \{0,1\}$ (no length).
+- **Coupled length penalty (GRPO+LP):** $r_i = (1 - \gamma \ell_i)$ if correct else 0, then $A_i = (r_i - \bar{r}) / \sigma_r$.  
   Implemented as `rewards_coupled_lp` + vanilla advantage in `dca.verl_integration` / `dca.slime_integration`.
 
 ---
@@ -240,7 +240,7 @@ If you add a new dependency, add it to `requirements.txt` with a version constra
 ## Paper Setup & License
 
 **Experiment setup (from the paper).**  
-Models: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B. Training: AIME + MATH ~1:2, 2500 samples. Evaluation: GSM8K, MATH500, AMC23, AIME25. Hyperparameters: temperature 0.6, top_p 0.95, max_tokens 16384; 3 rollouts per problem for GSM8K/MATH500, 10 for AMC/AIME. Metrics: pass@1, pass@10, avg_tokens, AES. Recommended \(\beta \approx 0.2\) for DCA.
+Models: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B. Training: AIME + MATH ~1:2, 2500 samples. Evaluation: GSM8K, MATH500, AMC23, AIME25. Hyperparameters: temperature 0.6, top_p 0.95, max_tokens 16384; 3 rollouts per problem for GSM8K/MATH500, 10 for AMC/AIME. Metrics: pass@1, pass@10, avg_tokens, AES. Recommended $\beta \approx 0.2$ for DCA.
 
 **License.**  
 This implementation is for research use. Models and datasets follow their respective licenses.
