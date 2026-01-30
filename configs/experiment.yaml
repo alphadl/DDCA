@@ -1,0 +1,38 @@
+# DCA experiment config (paper Section 5)
+# Models: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B
+# Training: AIME + MATH ~1:2, 2500 samples
+
+training:
+  dataset:
+    - path: data/aime_train.jsonl   # placeholder
+      weight: 1
+    - path: data/math_train.json
+      weight: 2
+  total_samples: 2500
+  group_size: 4          # G in GRPO
+  algorithm: grpo        # grpo | rloo
+  beta: 0.2              # length penalty (Section 7.3 sweet spot)
+  max_tokens: 16384
+  temperature: 0.6
+  top_p: 0.95
+
+evaluation:
+  datasets:
+    gsm8k:
+      path: data/gsm8k_test.jsonl
+      rollouts: 3
+    math500:
+      path: data/math500_test.json
+      rollouts: 3
+    amc23:
+      path: data/amc23_test.jsonl
+      rollouts: 10
+    aime25:
+      path: data/aime25_test.jsonl
+      rollouts: 10
+
+metrics:
+  - pass@1
+  - pass@10   # for AMC/AIME with 10 rollouts
+  - avg_tokens
+  - aes       # requires baseline run

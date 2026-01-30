@@ -1,0 +1,3 @@
+{"predictions": ["64"], "lengths": [200], "ground_truth": "64"}
+{"predictions": ["42"], "lengths": [150], "ground_truth": "42"}
+{"predictions": ["100"], "lengths": [180], "ground_truth": "99"}
