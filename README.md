@@ -1,4 +1,4 @@
-# DCA: Decoupled Conditional Advantage for Efficient Reasoning
+# Decoupled Conditional Advantage for Efficient Reasoning
 
 本仓库为 DCA（Decoupled Conditional Advantage）方法的复现代码与脚本。
 
