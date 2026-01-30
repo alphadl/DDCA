@@ -1,6 +1,6 @@
 # DCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-DCA 复现代码与脚本。本仓库**不包含**完整 RL 训练框架、**不依赖也不 import verl**，仅提供 DCA 优势计算；与 [verl](https://github.com/verl-project/verl) 的接入方式为：在 VERL 里安装本库并 patch 一处，改为调用 `dca.verl_integration`，见 [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md)。
+DCA 复现代码与脚本。本仓库**不包含**完整 RL 训练框架、**不依赖也不 import verl/slime**，仅提供 DCA 优势计算。**main**：与 [verl](https://github.com/verl-project/verl) 接入见 [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md)。**slime_backbone**：与 [THUDM/slime](https://github.com/THUDM/slime) 接入见 [docs/INTEGRATION_SLIME.md](docs/INTEGRATION_SLIME.md)，一键运行 `./scripts/run_slime_baselines.sh`。
 
 ---
 
@@ -31,7 +31,7 @@ BUILTIN_ONLY=1 TRAIN_SIZE=10 VAL_SIZE=5 ./scripts/run_full_pipeline.sh
 | `USE_MATH` | 0 | 1=加入 MATH（约 1:2） |
 | `RESULTS_FILE` | 空 | 指定已有结果 JSONL 则只跑评估 |
 
-**用 VERL 复现**：先 `python scripts/prepare_data.py --output_dir data/processed [--builtin_only]` 得到 `train.parquet`，再按 [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md) patch VERL 后运行 `./scripts/run_verl_baselines.sh`。已有 VERL 结果时：`RESULTS_FILE=/path/to/results.jsonl ./scripts/run_full_pipeline.sh` 仅做评估。
+**用 VERL 复现**：先 `python scripts/prepare_data.py --output_dir data/processed [--builtin_only]` 得到 `train.parquet`，再按 [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md) patch VERL 后运行 `./scripts/run_verl_baselines.sh`。**Slime 用户（slime_backbone 分支）**：按 [docs/INTEGRATION_SLIME.md](docs/INTEGRATION_SLIME.md) 在 [THUDM/slime](https://github.com/THUDM/slime) 中 patch 后一键运行 `./scripts/run_slime_baselines.sh`。已有结果时：`RESULTS_FILE=/path/to/results.jsonl ./scripts/run_full_pipeline.sh` 仅做评估。
 
 ---
 
@@ -47,19 +47,21 @@ BUILTIN_ONLY=1 TRAIN_SIZE=10 VAL_SIZE=5 ./scripts/run_full_pipeline.sh
 
 ```
 efficient_reason_DCA/
-├── dca/                 # 优势计算、指标、数据工具、VERL 接口
+├── dca/                 # 优势计算、指标、数据工具；verl_integration / slime_integration（分支 slime_backbone）
 ├── scripts/
 │   ├── run_full_pipeline.sh   # 一键：准备→演示→评估
 │   ├── prepare_data.py       # 小规模数据（parquet + jsonl）
-│   ├── demo_inference.py     # 演示推理（无 VERL 时）
+│   ├── demo_inference.py     # 演示推理（无 VERL/Slime 时）
 │   ├── evaluate.py           # pass@1、avg_tokens、AES
 │   ├── run_verl_baselines.sh # VERL 三 baseline 对照
+│   ├── run_slime_baselines.sh # Slime 三 baseline 对照（slime_backbone 分支）
 │   ├── run_verl_comparison.py # 本地对比三种 advantage
 │   ├── verify_dca.py         # 公式校验
 │   ├── cpu_mini_validate.py  # 极小规模 DCA vs 耦合 LP
 │   └── train_dca.py          # DCA API 检查（dry_run）
 ├── configs/experiment.yaml   # 实验配置
 ├── configs/verl/             # VERL 配置片段
+├── configs/slime/            # Slime 配置片段（slime_backbone 分支）
 └── tests/
 ```
 

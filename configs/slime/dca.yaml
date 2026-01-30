@@ -1,0 +1,10 @@
+# Slime GRPO baseline: DCA (Decoupled Conditional Advantage)
+# Reward = 0/1; advantage = DCA-GRPO (correctness + conditional length within correct set).
+
+algorithm:
+  adv_estimator: grpo
+  adv_mode: dca
+
+reward_mode: vanilla
+beta: 0.2
+# In reward fn: reward_for_slime(correct, lengths, mode="vanilla"). Advantage: compute_advantage_for_slime(batch, adv_mode="dca", beta=0.2)

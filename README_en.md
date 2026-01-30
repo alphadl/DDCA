@@ -1,6 +1,6 @@
 # DCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-Implementation and scripts for DCA. This repo **does not** include a full RL framework and **does not depend on or import verl**; it provides DCA advantage computation. To use with [verl](https://github.com/verl-project/verl): install this repo and patch VERL to call `dca.verl_integration`. See [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md).
+Implementation and scripts for DCA. This repo **does not** include a full RL framework and **does not depend on or import verl/slime**; it provides DCA advantage computation. **main**: use with [verl](https://github.com/verl-project/verl) via [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md). **slime_backbone** branch: use with [THUDM/slime](https://github.com/THUDM/slime) via [docs/INTEGRATION_SLIME.md](docs/INTEGRATION_SLIME.md), one-click `./scripts/run_slime_baselines.sh`.
 
 ---
 
@@ -31,7 +31,7 @@ Output: pass@1, avg_tokens, etc.; data and results under `data/processed/`.
 | `USE_MATH` | 0 | 1 = add MATH (~1:2) |
 | `RESULTS_FILE` | (empty) | If set, skip prepare/demo and run evaluation only |
 
-**Reproduce with VERL**: Run `python scripts/prepare_data.py --output_dir data/processed [--builtin_only]` to get `train.parquet`, then patch VERL per [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md) and run `./scripts/run_verl_baselines.sh`. With existing results: `RESULTS_FILE=/path/to/results.jsonl ./scripts/run_full_pipeline.sh` runs evaluation only.
+**Reproduce with VERL**: Run `python scripts/prepare_data.py --output_dir data/processed [--builtin_only]` to get `train.parquet`, then patch VERL per [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md) and run `./scripts/run_verl_baselines.sh`. **Slime (slime_backbone branch)**: patch [THUDM/slime](https://github.com/THUDM/slime) per [docs/INTEGRATION_SLIME.md](docs/INTEGRATION_SLIME.md) and run `./scripts/run_slime_baselines.sh`. With existing results: `RESULTS_FILE=/path/to/results.jsonl ./scripts/run_full_pipeline.sh` runs evaluation only.
 
 ---
 
@@ -47,19 +47,21 @@ Output: pass@1, avg_tokens, etc.; data and results under `data/processed/`.
 
 ```
 efficient_reason_DCA/
-├── dca/                 # Advantage, metrics, data utils, VERL interface
+├── dca/                 # Advantage, metrics, data utils; verl_integration / slime_integration (branch slime_backbone)
 ├── scripts/
 │   ├── run_full_pipeline.sh   # One-click: prepare → demo → evaluate
 │   ├── prepare_data.py        # Small-scale data (parquet + jsonl)
-│   ├── demo_inference.py      # Demo inference (when no VERL)
+│   ├── demo_inference.py      # Demo inference (when no VERL/Slime)
 │   ├── evaluate.py            # pass@1, avg_tokens, AES
 │   ├── run_verl_baselines.sh  # VERL three-baseline comparison
+│   ├── run_slime_baselines.sh # Slime three-baseline comparison (slime_backbone branch)
 │   ├── run_verl_comparison.py # Local comparison of three advantages
 │   ├── verify_dca.py          # Formula verification
 │   ├── cpu_mini_validate.py   # Tiny DCA vs coupled LP
 │   └── train_dca.py           # DCA API check (dry_run)
 ├── configs/experiment.yaml   # Experiment config
 ├── configs/verl/              # VERL config snippets
+├── configs/slime/             # Slime config snippets (slime_backbone branch)
 └── tests/
 ```
 

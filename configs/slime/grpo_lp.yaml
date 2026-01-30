@@ -1,0 +1,10 @@
+# Slime GRPO baseline: Coupled length penalty
+# Reward = (1 - gamma*length) if correct else 0; advantage = (r - mean(r)) / std(r).
+
+algorithm:
+  adv_estimator: grpo
+  adv_mode: grpo_lp
+
+reward_mode: grpo_lp
+gamma: 0.001
+# In reward fn: reward_for_slime(correct, lengths, mode="grpo_lp", gamma=0.001)

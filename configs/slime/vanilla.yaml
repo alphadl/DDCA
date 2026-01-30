@@ -1,0 +1,8 @@
+# Slime GRPO baseline: Vanilla (no length penalty)
+# Use with run_slime_baselines.sh or paste as overrides for your Slime run.
+
+algorithm:
+  adv_estimator: grpo
+  adv_mode: vanilla
+
+# Reward: 0/1 only (correctness). In reward fn: reward_for_slime(correct, lengths, mode="vanilla")
