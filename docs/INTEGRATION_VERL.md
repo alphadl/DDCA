@@ -1,6 +1,6 @@
 # VERL 接入 DCA
 
-本仓库提供统一 advantage 接口（vanilla / grpo_lp / dca），在 [verl](https://github.com/verl-project/verl) 中安装本库并 patch 一处即可切换。
+本仓库**不依赖、不 import verl**；`dca.verl_integration` 是供 VERL **调用**的接口（advantage / reward）。你在 [verl](https://github.com/verl-project/verl) 里安装本库，并在 VERL 代码中**增加**一处 `from dca.verl_integration import compute_advantage` 等，即可切换 vanilla / grpo_lp / dca。
 
 ## 安装与 patch
 

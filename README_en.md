@@ -1,6 +1,6 @@
 # DCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-Implementation and scripts for DCA. This repo **does not** include a full RL training framework; it provides DCA advantage computation to plug into existing GRPO/RLOO. For [verl](https://github.com/verl-project/verl) see [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md).
+Implementation and scripts for DCA. This repo **does not** include a full RL framework and **does not depend on or import verl**; it provides DCA advantage computation. To use with [verl](https://github.com/verl-project/verl): install this repo and patch VERL to call `dca.verl_integration`. See [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md).
 
 ---
 

@@ -1,6 +1,6 @@
 # DCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-DCA 复现代码与脚本。本仓库**不包含**完整 RL 训练框架，仅提供 DCA 优势计算，供在现有 GRPO/RLOO 中替换；基于 [verl](https://github.com/verl-project/verl) 时见 [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md)。
+DCA 复现代码与脚本。本仓库**不包含**完整 RL 训练框架、**不依赖也不 import verl**，仅提供 DCA 优势计算；与 [verl](https://github.com/verl-project/verl) 的接入方式为：在 VERL 里安装本库并 patch 一处，改为调用 `dca.verl_integration`，见 [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md)。
 
 ---
 

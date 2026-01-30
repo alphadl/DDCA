@@ -1,14 +1,12 @@
 """
-VERL integration: unified advantage estimators and reward shapers for GRPO baselines.
+VERL 接入层：统一 advantage / reward 接口，供 VERL 侧 patch 后调用。
 
-Usage in VERL (after patching or registering this as the advantage module):
+本包不依赖、不 import verl；集成方向是「VERL 安装本库后，在 VERL 代码里 import 并调用本包」。
+在 VERL 中计算 advantage 的位置 patch 为：
 
   from dca.verl_integration import compute_advantage, reward_for_verl
 
-  # In reward function (per response):
   rewards = reward_for_verl(correct, lengths, mode=config.reward_mode, gamma=config.gamma)
-
-  # In advantage computation (per group):
   advantages = compute_advantage(rewards, lengths, correct_mask=correct, mode=config.adv_mode, beta=config.beta)
 """
 
