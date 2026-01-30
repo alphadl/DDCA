@@ -52,6 +52,14 @@ python scripts/verify_dca.py
 
 验证：参数失效、长度优势在正确集内零和、DCA 与耦合奖励在混合组上的差异等。
 
+### 1b. 极小规模验证（仅 CPU，无 GPU）
+
+不依赖 PyTorch/GPU，用玩具策略（单参数 λ，长度 ~ Poisson(λ)）对比 DCA 与耦合长度惩罚，几秒内跑完：
+
+```bash
+python scripts/cpu_mini_validate.py
+```
+
 ### 2. 在训练循环中使用 DCA
 
 在 GRPO/RLOO 中，将原来的优势替换为 DCA 即可：

@@ -52,6 +52,14 @@ python scripts/verify_dca.py
 
 Checks: parameter inefficacy, zero-sum length advantage over the correct set, and DCA vs coupled reward in mixed groups.
 
+### 1b. Minimal CPU-only validation
+
+No GPU or PyTorch. Uses a toy policy (single parameter λ; length ~ Poisson(λ)) to compare DCA vs coupled length penalty; finishes in seconds:
+
+```bash
+python scripts/cpu_mini_validate.py
+```
+
 ### 2. Use DCA in your training loop
 
 In GRPO/RLOO, replace the standard advantage with DCA:
