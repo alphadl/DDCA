@@ -1,124 +1,81 @@
 # DCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-This repository contains the implementation and scripts for the DCA (Decoupled Conditional Advantage) method.
+Implementation and scripts for DCA. This repo **does not** include a full RL training framework; it provides DCA advantage computation to plug into existing GRPO/RLOO. For [verl](https://github.com/verl-project/verl) see [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md).
 
-## Key Ideas
+---
 
-- **Problem**: RLVR (e.g., GRPO) tends to cause overthinking—excessively long reasoning; naively adding length penalty to the reward often leads to performance collapse.
-- **Causes**:  
-  1. **Dilution of Length Baseline**: In mixed-quality groups, incorrect responses (with no length penalty) lower the group mean, so correct responses are wrongly penalized for being “longer” relative to a distorted baseline.  
-  2. **Parameter Inefficacy**: When all responses in a group are correct, variance normalization cancels out the length-penalty coefficient γ in the formula, making length uncontrollable.
-- **Method**: **DCA (Decoupled Conditional Advantage)**  
-  - Decouple correctness and efficiency;  
-  - Compute length advantage **only within the set of correct responses** (conditional), removing baseline dilution;  
-  - Map length Z-score to a bounded score via Sigmoid, so efficiency acts as a positive bonus for information density rather than a blunt penalty.
+## One-Click Reproduce Paper Results
 
-## Setup
+**Setup** (once):
 
 ```bash
 cd efficient_reason_DCA
 pip install -r requirements.txt
 ```
 
+**One command** (prepare data → demo inference → evaluate, ~seconds):
+
+```bash
+BUILTIN_ONLY=1 TRAIN_SIZE=10 VAL_SIZE=5 ./scripts/run_full_pipeline.sh
+```
+
+Output: pass@1, avg_tokens, etc.; data and results under `data/processed/`.
+
+**Optional env vars** (defaults shown):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATA_DIR` | `data/processed` | Data and results directory |
+| `TRAIN_SIZE` / `VAL_SIZE` | 200 / 50 | Sample counts (when HF available) |
+| `BUILTIN_ONLY` | 0 | 1 = built-in samples only, no download (quick demo) |
+| `USE_MATH` | 0 | 1 = add MATH (~1:2) |
+| `RESULTS_FILE` | (empty) | If set, skip prepare/demo and run evaluation only |
+
+**Reproduce with VERL**: Run `python scripts/prepare_data.py --output_dir data/processed [--builtin_only]` to get `train.parquet`, then patch VERL per [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md) and run `./scripts/run_verl_baselines.sh`. With existing results: `RESULTS_FILE=/path/to/results.jsonl ./scripts/run_full_pipeline.sh` runs evaluation only.
+
+---
+
+## Method (short)
+
+- **Problem**: GRPO-style training tends to overthink; naive length penalty in reward often collapses.
+- **Cause**: Wrong answers dilute the length baseline; all-correct groups get normalized so length coefficient is ineffective.
+- **Method**: DCA—decouple correctness and efficiency; compute length advantage only within correct set; map length Z-score via Sigmoid to a bounded score.
+
+---
+
 ## Project Structure
 
 ```
 efficient_reason_DCA/
-├── dca/
-│   ├── advantage.py   # DCA-GRPO / DCA-RLOO advantage computation
-│   ├── metrics.py     # AES, pass@K
-│   ├── data_utils.py  # Data loading and answer equivalence
-│   └── __init__.py
+├── dca/                 # Advantage, metrics, data utils, VERL interface
 ├── scripts/
-│   ├── train_dca.py   # Training integration and DCA API check
-│   ├── evaluate.py    # Evaluation: accuracy, tokens, pass@K, AES
-│   └── verify_dca.py  # Formula and property verification
-├── configs/
-│   └── experiment.yaml
-├── tests/
-│   ├── test_advantage.py
-│   └── test_metrics.py
-├── requirements.txt
-└── README.md
+│   ├── run_full_pipeline.sh   # One-click: prepare → demo → evaluate
+│   ├── prepare_data.py        # Small-scale data (parquet + jsonl)
+│   ├── demo_inference.py      # Demo inference (when no VERL)
+│   ├── evaluate.py            # pass@1, avg_tokens, AES
+│   ├── run_verl_baselines.sh  # VERL three-baseline comparison
+│   ├── run_verl_comparison.py # Local comparison of three advantages
+│   ├── verify_dca.py          # Formula verification
+│   ├── cpu_mini_validate.py   # Tiny DCA vs coupled LP
+│   └── train_dca.py           # DCA API check (dry_run)
+├── configs/experiment.yaml   # Experiment config
+├── configs/verl/              # VERL config snippets
+└── tests/
 ```
 
-## Quick Start
+---
 
-### 1. Verify DCA formulas and properties
+## More
 
-```bash
-python scripts/verify_dca.py
-```
+- **Formulas**: `python scripts/verify_dca.py`
+- **Tiny validation (CPU)**: `python scripts/cpu_mini_validate.py`
+- **Evaluate**: `python scripts/evaluate.py --results path/to/results.jsonl --k 1`
+- **Tests**: `python scripts/run_tests.py`
 
-Checks: parameter inefficacy, zero-sum length advantage over the correct set, and DCA vs coupled reward in mixed groups.
+**Paper setup**: Qwen3-1.7B / DeepSeek-R1-Distill-Qwen-1.5B; AIME+MATH ~1:2, 2500 samples; eval on GSM8K/MATH500/AMC/AIME; pass@1, avg_tokens, AES; β≈0.2.
 
-### 1b. Minimal CPU-only validation
-
-No GPU or PyTorch. Uses a toy policy (single parameter λ; length ~ Poisson(λ)) to compare DCA vs coupled length penalty; finishes in seconds:
-
-```bash
-python scripts/cpu_mini_validate.py
-```
-
-### 2. Use DCA in your training loop
-
-In GRPO/RLOO, replace the standard advantage with DCA:
-
-```python
-from dca import advantage_dca_grpo  # or advantage_dca_rloo
-
-# For each prompt, sample G responses and get correct_mask and lengths
-correct_mask = np.array([...])  # shape (G,), bool
-lengths = np.array([...])       # shape (G,), int
-
-advantages = advantage_dca_grpo(correct_mask, lengths, beta=0.2)
-# Use advantages in your policy gradient (e.g., GRPO clip loss)
-```
-
-- **GRPO**: `advantage_dca_grpo(correct_mask, lengths, beta)`  
-- **RLOO**: `advantage_dca_rloo(correct_mask, lengths, beta)`  
-
-Recommended **β ≈ 0.2** for the efficiency–accuracy trade-off.
-
-### 3. Evaluation
-
-Results should be in JSONL format, one sample per line, with fields such as:
-
-- `predictions`: list of strings (multiple rollouts) or a single string  
-- `lengths`: list of token counts per rollout or a single value  
-- `ground_truth` or `answer`: reference answer  
-
-```bash
-python scripts/evaluate.py --results path/to/results.jsonl --k 3
-# With baseline results, compute AES
-python scripts/evaluate.py --results results.jsonl --base_results base.jsonl --k 3
-```
-
-### 4. Unit tests
-
-```bash
-python scripts/run_tests.py
-# Or (requires pytest): pytest tests/ -v
-```
-
-## Experimental setup
-
-- **Models**: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B  
-- **Training data**: AIME + MATH, ~1:2 mix, 2500 samples  
-- **Evaluation**: GSM8K, MATH500, AMC23, AIME25  
-- **Hyperparameters**: temperature=0.6, top_p=0.95, max_tokens=16384; 3 rollouts per problem for GSM8K/MATH500, 10 for AMC/AIME (pass@1/pass@10)  
-- **Metrics**: pass@1, average tokens, **AES (Accuracy-Efficiency Score)**
-
-## Pushing to GitHub
-
-First-time setup and push (main branch):
-
-```bash
-git remote add origin https://github.com/alphadl/Decoupled_Conditional_Advantage.git
-git branch -M main
-git push -u origin main
-```
+---
 
 ## License
 
-This implementation is for research use only; models and data follow their respective licenses.
+Research use; models and data follow their respective licenses.

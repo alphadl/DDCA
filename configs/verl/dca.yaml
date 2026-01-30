@@ -1,0 +1,13 @@
+# VERL GRPO baseline: DCA (Decoupled Conditional Advantage)
+# Reward = 0/1 (correctness); advantage = DCA-GRPO (correctness + conditional length within correct set).
+
+algorithm:
+  adv_estimator: grpo
+  adv_mode: dca
+  use_kl_in_reward: false
+
+reward_mode: vanilla
+beta: 0.2
+
+# In your reward function, use reward_for_verl(correct, lengths, mode="vanilla").
+# In advantage computation, use compute_advantage(..., mode="dca", beta=0.2).

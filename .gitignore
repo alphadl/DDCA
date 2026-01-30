@@ -10,3 +10,6 @@ build/
 .env
 .venv/
 venv/
+data/processed/
+*.log
+scripts/logs/

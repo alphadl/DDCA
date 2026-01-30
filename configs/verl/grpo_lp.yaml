@@ -1,0 +1,13 @@
+# VERL GRPO baseline: Coupled length penalty (GRPO + LP)
+# Reward = (1 - gamma*length) if correct else 0; advantage = (r - mean(r)) / std(r).
+
+algorithm:
+  adv_estimator: grpo
+  adv_mode: grpo_lp
+  use_kl_in_reward: false
+
+# Length penalty in reward (coupled)
+reward_mode: grpo_lp
+gamma: 0.001
+
+# In your reward function, use reward_for_verl(correct, lengths, mode="grpo_lp", gamma=0.001)

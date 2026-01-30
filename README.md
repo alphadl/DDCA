@@ -4,6 +4,4 @@
 
 ---
 
-This repo provides the implementation and scripts for DCA. Use the links above to switch language.
-
-本仓库提供 DCA 的复现代码与脚本，请通过上方链接切换语言。
+DCA 复现。一键复现：`BUILTIN_ONLY=1 TRAIN_SIZE=10 VAL_SIZE=5 ./scripts/run_full_pipeline.sh`（详见 [README_zh.md](README_zh.md) / [README_en.md](README_en.md)）。

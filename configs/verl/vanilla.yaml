@@ -1,0 +1,11 @@
+# VERL GRPO baseline: Vanilla (no length penalty)
+# Use with: python -m verl.trainer.main_ppo ... $(cat configs/verl/vanilla.yaml | sed 's/^/  /' or paste as overrides)
+# Or append these overrides to your run script.
+
+algorithm:
+  adv_estimator: grpo
+  adv_mode: vanilla
+  use_kl_in_reward: false
+
+# Reward: 0/1 only (correctness). No length in reward.
+# In your reward function, use reward_for_verl(correct, lengths, mode="vanilla")

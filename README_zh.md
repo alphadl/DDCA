@@ -1,124 +1,81 @@
 # DCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-本仓库为 DCA（Decoupled Conditional Advantage）方法的复现代码与脚本。
+DCA 复现代码与脚本。本仓库**不包含**完整 RL 训练框架，仅提供 DCA 优势计算，供在现有 GRPO/RLOO 中替换；基于 [verl](https://github.com/verl-project/verl) 时见 [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md)。
 
-## 方法要点
+---
 
-- **问题**：RLVR（如 GRPO）易导致推理冗长（overthinking）；在奖励中简单加入长度惩罚常导致效果崩溃。
-- **原因**：  
-  1. **长度基线稀释（Dilution of Length Baseline）**：混合质量组中，错误样本无长度惩罚，拉低组均值，使正确样本被错误地相对“罚长”。  
-  2. **参数失效（Parameter Inefficacy）**：全对组中方差归一化会使长度惩罚系数 γ 在公式中被抵消，无法调节长度。
-- **方法**：**DCA（Decoupled Conditional Advantage）**  
-  - 将正确性与效率解耦；  
-  - 仅在**正确样本集合**内计算长度优势（条件化），消除基线稀释；  
-  - 用 Sigmoid 将长度 Z-score 映射为有界分数，效率作为“信息密度”的正向奖励而非单纯惩罚。
+## 一键复现论文结果
 
-## 环境与依赖
+**环境**（一次性）：
 
 ```bash
 cd efficient_reason_DCA
 pip install -r requirements.txt
 ```
 
+**一键运行**（准备数据 → 演示推理 → 评估，约几秒）：
+
+```bash
+BUILTIN_ONLY=1 TRAIN_SIZE=10 VAL_SIZE=5 ./scripts/run_full_pipeline.sh
+```
+
+输出：pass@1、avg_tokens 等；数据与结果在 `data/processed/`。
+
+**可选环境变量**（有默认值）：
+
+| 变量 | 默认 | 说明 |
+|------|------|------|
+| `DATA_DIR` | `data/processed` | 数据与结果目录 |
+| `TRAIN_SIZE` / `VAL_SIZE` | 200 / 50 | 样本数（HF 可用时） |
+| `BUILTIN_ONLY` | 0 | 1=仅内置样本，免下载（快速演示） |
+| `USE_MATH` | 0 | 1=加入 MATH（约 1:2） |
+| `RESULTS_FILE` | 空 | 指定已有结果 JSONL 则只跑评估 |
+
+**用 VERL 复现**：先 `python scripts/prepare_data.py --output_dir data/processed [--builtin_only]` 得到 `train.parquet`，再按 [docs/INTEGRATION_VERL.md](docs/INTEGRATION_VERL.md) patch VERL 后运行 `./scripts/run_verl_baselines.sh`。已有 VERL 结果时：`RESULTS_FILE=/path/to/results.jsonl ./scripts/run_full_pipeline.sh` 仅做评估。
+
+---
+
+## 方法简述
+
+- **问题**：GRPO 等易导致推理过长；奖励中简单加长度惩罚易崩。
+- **原因**：混合组中错误样本拉低均值（基线稀释）；全对组方差归一化使长度系数失效。
+- **方法**：DCA——正确性与效率解耦，仅在正确集内算长度优势，用 Sigmoid 映射为有界分数。
+
+---
+
 ## 项目结构
 
 ```
 efficient_reason_DCA/
-├── dca/
-│   ├── advantage.py   # DCA-GRPO / DCA-RLOO 优势计算
-│   ├── metrics.py    # AES, pass@K
-│   ├── data_utils.py # 数据加载与答案等价性
-│   └── __init__.py
+├── dca/                 # 优势计算、指标、数据工具、VERL 接口
 ├── scripts/
-│   ├── train_dca.py   # 训练接入说明与 DCA API 检查
-│   ├── evaluate.py    # 评估：accuracy, tokens, pass@K, AES
-│   └── verify_dca.py  # 公式与性质校验
-├── configs/
-│   └── experiment.yaml
-├── tests/
-│   ├── test_advantage.py
-│   └── test_metrics.py
-├── requirements.txt
-└── README.md
+│   ├── run_full_pipeline.sh   # 一键：准备→演示→评估
+│   ├── prepare_data.py       # 小规模数据（parquet + jsonl）
+│   ├── demo_inference.py     # 演示推理（无 VERL 时）
+│   ├── evaluate.py           # pass@1、avg_tokens、AES
+│   ├── run_verl_baselines.sh # VERL 三 baseline 对照
+│   ├── run_verl_comparison.py # 本地对比三种 advantage
+│   ├── verify_dca.py         # 公式校验
+│   ├── cpu_mini_validate.py  # 极小规模 DCA vs 耦合 LP
+│   └── train_dca.py          # DCA API 检查（dry_run）
+├── configs/experiment.yaml   # 实验配置
+├── configs/verl/             # VERL 配置片段
+└── tests/
 ```
 
-## 快速开始
+---
 
-### 1. 校验 DCA 公式与性质
+## 进阶
 
-```bash
-python scripts/verify_dca.py
-```
+- **公式与性质**：`python scripts/verify_dca.py`
+- **极小验证（CPU）**：`python scripts/cpu_mini_validate.py`
+- **评估**：`python scripts/evaluate.py --results path/to/results.jsonl --k 1`
+- **单元测试**：`python scripts/run_tests.py`
 
-验证：参数失效、长度优势在正确集内零和、DCA 与耦合奖励在混合组上的差异等。
+**论文实验设置**：Qwen3-1.7B / DeepSeek-R1-Distill-Qwen-1.5B；AIME+MATH ~1:2、2500 条；GSM8K/MATH500/AMC/AIME 评估；pass@1、avg_tokens、AES；β≈0.2。
 
-### 1b. 极小规模验证（仅 CPU，无 GPU）
-
-不依赖 PyTorch/GPU，用玩具策略（单参数 λ，长度 ~ Poisson(λ)）对比 DCA 与耦合长度惩罚，几秒内跑完：
-
-```bash
-python scripts/cpu_mini_validate.py
-```
-
-### 2. 在训练循环中使用 DCA
-
-在 GRPO/RLOO 中，将原来的优势替换为 DCA 即可：
-
-```python
-from dca import advantage_dca_grpo  # 或 advantage_dca_rloo
-
-# 每个 prompt 采样 G 条回复，得到 correct_mask 与 lengths
-correct_mask = np.array([...])  # shape (G,), bool
-lengths = np.array([...])       # shape (G,), int
-
-advantages = advantage_dca_grpo(correct_mask, lengths, beta=0.2)
-# 用 advantages 做 policy gradient（如 GRPO 的 clip loss）
-```
-
-- **GRPO**：`advantage_dca_grpo(correct_mask, lengths, beta)`  
-- **RLOO**：`advantage_dca_rloo(correct_mask, lengths, beta)`  
-
-推荐 **β ≈ 0.2** 作为效率-准确率折中。
-
-### 3. 评估
-
-结果文件需为 JSONL，每行一条样本，包含例如：
-
-- `predictions`: 列表（多 rollout）或单个字符串  
-- `lengths`: 对应 token 长度列表或单个值  
-- `ground_truth` 或 `answer`: 标准答案  
-
-```bash
-python scripts/evaluate.py --results path/to/results.jsonl --k 3
-# 若提供基线结果，可算 AES
-python scripts/evaluate.py --results results.jsonl --base_results base.jsonl --k 3
-```
-
-### 4. 单元测试
-
-```bash
-python scripts/run_tests.py
-# 或（需安装 pytest）：pytest tests/ -v
-```
-
-## 实验设置
-
-- **模型**：Qwen3-1.7B、DeepSeek-R1-Distill-Qwen-1.5B  
-- **训练数据**：AIME + MATH，约 1:2 混合，共 2500 条  
-- **评估**：GSM8K、MATH500、AMC23、AIME25  
-- **超参**：temperature=0.6, top_p=0.95, max_tokens=16384；GSM8K/MATH500 每题 3 rollout，AMC/AIME 每题 10 rollout（pass@1/pass@10）  
-- **指标**：pass@1、平均 token 数、**AES（Accuracy-Efficiency Score）**
-
-## 仓库推送
-
-首次关联远程并推送到 GitHub（main 分支）：
-
-```bash
-git remote add origin https://github.com/alphadl/Decoupled_Conditional_Advantage.git
-git branch -M main
-git push -u origin main
-```
+---
 
 ## License
 
-本复现仅供研究使用；模型与数据请遵循各原始来源的许可。
+研究使用；模型与数据遵循各自许可。
