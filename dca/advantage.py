@@ -1,7 +1,10 @@
 """
-Decoupled Conditional Advantage (DCA) for RLVR.
+Decoupled Conditional Advantage (DCA) / Dynamic DCA (DDCA) for RLVR.
 
 Implements DCA-GRPO and DCA-RLOO (methodology: decoupled accuracy + conditional length advantage).
+DDCA (use_dynamic=True): scale length advantage by pass rate ρ = n/G (Difficulty-Aware Coefficient).
+  - Hard problems (ρ→0): length term suppressed, focus on accuracy.
+  - Easy problems (ρ→1): full length penalty for efficiency.
 """
 
 import numpy as np
@@ -69,17 +72,20 @@ def advantage_dca_grpo(
     lengths: np.ndarray,
     beta: float,
     eps: float = 1e-8,
+    use_dynamic: bool = True,
 ) -> np.ndarray:
     """
-    DCA-GRPO: decoupled advantages for accuracy and length.
+    DCA-GRPO (or DDCA-GRPO when use_dynamic=True): decoupled advantages for accuracy and length.
 
     - Accuracy: A_acc_i = (r_acc_i - mu_acc) / (sigma_acc + eps) over all G.
     - Length:  A_len_i = -(s_i - s_bar) for i in Sc, else 0. s_bar = mean(s) over Sc.
+      If use_dynamic (DDCA): A_len_i *= (n/G) so hard problems (low pass rate) get less length penalty.
     - Total:   A_i = A_acc_i + beta * A_len_i.
 
     correct_mask: bool array [G], True iff response is correct.
     lengths: int array [G], token lengths.
     beta: length penalty coefficient.
+    use_dynamic: if True (default), scale length advantage by ρ = n/G (DDCA, Eq.13).
     """
     G = correct_mask.shape[0]
     # Accuracy reward: 1 if correct else 0
@@ -93,11 +99,16 @@ def advantage_dca_grpo(
     # Length score only for correct responses
     s = length_score_z_sigmoid(lengths, correct_mask, eps)
     Sc = np.where(correct_mask)[0]
+    n = len(Sc)
     A_len = np.zeros(G, dtype=np.float64)
-    if len(Sc) > 0:
+    if n > 0:
         s_correct = s[correct_mask]
         s_bar = np.mean(s_correct)
         A_len[correct_mask] = -(s[correct_mask] - s_bar)
+        if use_dynamic:
+            # DDCA: scale by pass rate ρ = n/N (Difficulty-Aware Coefficient)
+            rho = n / G
+            A_len[correct_mask] *= rho
 
     return A_acc + beta * A_len
 
@@ -107,12 +118,14 @@ def advantage_dca_rloo(
     lengths: np.ndarray,
     beta: float,
     eps: float = 1e-8,
+    use_dynamic: bool = True,
 ) -> np.ndarray:
     """
-    DCA-RLOO: leave-one-out baseline.
+    DCA-RLOO (or DDCA-RLOO when use_dynamic=True): leave-one-out baseline.
 
     - Accuracy: A_acc_i = r_acc_i - mean(r_acc over j != i).
     - Length:   A_len_i = -(s_i - mean(s over j in Sc, j != i)) for i in Sc, else 0.
+      If use_dynamic (DDCA): A_len_i *= (n/G) (Eq.13).
     """
     G = correct_mask.shape[0]
     r_acc = correct_mask.astype(np.float64)
@@ -123,6 +136,7 @@ def advantage_dca_rloo(
 
     s = length_score_z_sigmoid(lengths, correct_mask, eps)
     Sc = np.where(correct_mask)[0]
+    n = len(Sc)
     A_len = np.zeros(G, dtype=np.float64)
     for i in range(G):
         if not correct_mask[i]:
@@ -133,6 +147,9 @@ def advantage_dca_rloo(
         else:
             s_bar_i = np.mean(s[others_in_Sc])
             A_len[i] = -(s[i] - s_bar_i)
+    if use_dynamic and n > 0:
+        rho = n / G
+        A_len[correct_mask] *= rho
 
     return A_acc + beta * A_len
 

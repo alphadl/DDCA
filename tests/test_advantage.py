@@ -43,7 +43,7 @@ class TestAdvantage(unittest.TestCase):
         self.assertTrue(np.all(np.isfinite(adv)))
 
     def test_dca_length_zero_sum_correct_set(self):
-        """Sum of length advantages over correct indices should be 0 (GRPO)."""
+        """Sum of length advantages over correct indices should be 0 (GRPO, use_dynamic=False)."""
         correct_mask = np.array([True, True, False, True])
         lengths = np.array([50, 100, 200, 150])
         s = length_score_z_sigmoid(lengths, correct_mask)
@@ -51,6 +51,25 @@ class TestAdvantage(unittest.TestCase):
         A_len = np.zeros(4)
         A_len[correct_mask] = -(s[correct_mask] - s_bar)
         self.assertLess(np.abs(A_len.sum()), 1e-10)
+
+    def test_ddca_grpo_dynamic_scaling(self):
+        """DDCA (use_dynamic=True): length advantage scaled by ρ = n/G."""
+        correct_mask = np.array([True, False, True, True])  # n=3, G=4, rho=0.75
+        lengths = np.array([50, 100, 150, 200])
+        adv_dca = advantage_dca_grpo(correct_mask, lengths, beta=0.2, use_dynamic=False)
+        adv_ddca = advantage_dca_grpo(correct_mask, lengths, beta=0.2, use_dynamic=True)
+        self.assertEqual(adv_dca.shape, adv_ddca.shape)
+        self.assertTrue(np.all(np.isfinite(adv_ddca)))
+        # DDCA length term is rho * DCA length term; total differs
+        self.assertFalse(np.allclose(adv_dca, adv_ddca))
+
+    def test_ddca_rloo_dynamic_scaling(self):
+        """DDCA-RLOO: length advantage scaled by ρ = n/G."""
+        correct_mask = np.array([True, True, False])
+        lengths = np.array([80, 120, 200])
+        adv_ddca = advantage_dca_rloo(correct_mask, lengths, beta=0.2, use_dynamic=True)
+        self.assertEqual(adv_ddca.shape, (3,))
+        self.assertTrue(np.all(np.isfinite(adv_ddca)))
 
     def test_coupled_reward_all_wrong(self):
         r = rewards_coupled_lp(np.zeros(4, dtype=bool), np.array([1, 2, 3, 4]), 0.1)

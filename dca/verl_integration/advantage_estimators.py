@@ -1,9 +1,10 @@
 """
-Unified advantage estimators for VERL GRPO: vanilla, coupled LP, DCA.
+Unified advantage estimators for VERL GRPO: vanilla, coupled LP, DCA/DDCA.
 
 VERL typically computes advantage as (r - mean(r)) / std(r) from scalar rewards.
 This module provides a single entry point that supports multiple modes so you can
 switch baseline via config (e.g. algorithm.adv_mode=vanilla|grpo_lp|dca).
+DDCA (use_dynamic=True, default): scale length advantage by pass rate ρ = n/G.
 """
 
 import numpy as np
@@ -43,6 +44,7 @@ def compute_advantage(
     beta: float = 0.2,
     gamma: float = 1e-3,
     use_rloo: bool = False,
+    use_dynamic: bool = True,
     eps: float = 1e-8,
 ) -> np.ndarray:
     """
@@ -60,8 +62,8 @@ def compute_advantage(
     mode : str
         "vanilla"  : A = (r - mean(r)) / std(r), no length in reward.
         "grpo_lp"  : r is already coupled (1 - gamma*L) for correct; A = (r - mean(r)) / std(r).
-        "dca"      : DCA-GRPO advantage (correctness + conditional length).
-        "dca_rloo" : DCA-RLOO advantage.
+        "dca"      : DCA/DDCA-GRPO advantage (correctness + conditional length).
+        "dca_rloo" : DCA/DDCA-RLOO advantage.
     beta : float
         Length weight for DCA (ignored for vanilla / grpo_lp).
     gamma : float
@@ -69,6 +71,8 @@ def compute_advantage(
         then we build r = (1 - gamma*L) for correct, 0 else).
     use_rloo : bool
         If True and mode is dca, use DCA-RLOO; else DCA-GRPO.
+    use_dynamic : bool
+        If True (default), scale length advantage by ρ = n/G (DDCA). Set False for original DCA.
     eps : float
         Small constant for std.
 
@@ -84,7 +88,7 @@ def compute_advantage(
         correct_mask = np.asarray(correct_mask, dtype=bool)
 
     if rewards.ndim == 1:
-        return _compute_advantage_1d(rewards, lengths, correct_mask, mode, beta=beta, gamma=gamma, use_rloo=use_rloo, eps=eps)
+        return _compute_advantage_1d(rewards, lengths, correct_mask, mode, beta=beta, gamma=gamma, use_rloo=use_rloo, use_dynamic=use_dynamic, eps=eps)
     # Batch of groups (B, G)
     B, G = rewards.shape
     if correct_mask.ndim == 1 and correct_mask.size == B * G:
@@ -94,7 +98,7 @@ def compute_advantage(
     out = np.zeros_like(rewards)
     for b in range(B):
         out[b] = _compute_advantage_1d(
-            rewards[b], lengths[b], correct_mask[b], mode, beta=beta, gamma=gamma, use_rloo=use_rloo, eps=eps
+            rewards[b], lengths[b], correct_mask[b], mode, beta=beta, gamma=gamma, use_rloo=use_rloo, use_dynamic=use_dynamic, eps=eps
         )
     return out
 
@@ -108,6 +112,7 @@ def _compute_advantage_1d(
     beta: float,
     gamma: float,
     use_rloo: bool,
+    use_dynamic: bool,
     eps: float,
 ) -> np.ndarray:
     G = rewards.shape[0]
@@ -128,7 +133,7 @@ def _compute_advantage_1d(
 
     if mode in ("dca", "dca_rloo"):
         if use_rloo or mode == "dca_rloo":
-            return advantage_dca_rloo(correct_mask, lengths, beta=beta, eps=eps)
-        return advantage_dca_grpo(correct_mask, lengths, beta=beta, eps=eps)
+            return advantage_dca_rloo(correct_mask, lengths, beta=beta, eps=eps, use_dynamic=use_dynamic)
+        return advantage_dca_grpo(correct_mask, lengths, beta=beta, eps=eps, use_dynamic=use_dynamic)
 
     raise ValueError("mode must be one of: vanilla, grpo_lp, dca, dca_rloo")

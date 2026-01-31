@@ -19,6 +19,7 @@ def compute_advantage_for_slime(
     beta: float = 0.2,
     gamma: float = 1e-3,
     use_rloo: bool = False,
+    use_dynamic: bool = True,
     reward_key: str = "rewards",
     length_key: str = "response_lengths",
     correct_key: Optional[str] = None,
@@ -36,8 +37,8 @@ def compute_advantage_for_slime(
         Optional: correct_key for binary correctness; else inferred from rewards > 0.5.
     adv_mode : str
         "vanilla" | "grpo_lp" | "dca" | "dca_rloo"
-    beta, gamma, use_rloo
-        Passed to compute_advantage.
+    beta, gamma, use_rloo, use_dynamic
+        Passed to compute_advantage. use_dynamic=True (DDCA) scales length advantage by ρ=n/G.
     group_size : int, optional
         G (responses per prompt). If None, treat N as one group.
 
@@ -68,6 +69,7 @@ def compute_advantage_for_slime(
         beta=beta,
         gamma=gamma,
         use_rloo=use_rloo,
+        use_dynamic=use_dynamic,
     )
 
     if flat and group_size is not None:

@@ -1,6 +1,8 @@
-# DCA: Decoupled Conditional Advantage for Efficient Reasoning
+# DCA / DDCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-Implementation and scripts for **DCA (Decoupled Conditional Advantage)** for RL-based reasoning (e.g. GRPO/RLOO). This repo provides the **advantage computation** and **evaluation metrics**; it does **not** include a full RL training loop or depend on any specific framework. We provide adapters for [verl](https://github.com/verl-project/verl) and [THUDM/slime](https://github.com/THUDM/slime) so you can plug DCA into your existing trainer.
+Implementation and scripts for **DCA (Decoupled Conditional Advantage)** and **DDCA (Dynamic Decoupled Conditional Advantage)** for RL-based reasoning (e.g. GRPO/RLOO). This repo provides the **advantage computation** and **evaluation metrics**; it does **not** include a full RL training loop or depend on any specific framework. We provide adapters for [verl](https://github.com/verl-project/verl) and [THUDM/slime](https://github.com/THUDM/slime) so you can plug DCA/DDCA into your existing trainer.
+
+**DDCA** (default): scales the length advantage by the group pass rate ρ = n/G (Difficulty-Aware Coefficient). Hard problems (ρ→0) get less length penalty so the model focuses on accuracy; easy problems (ρ→1) get full length penalty for efficiency. Set `use_dynamic=False` for original DCA.
 
 ---
 
@@ -25,17 +27,19 @@ Implementation and scripts for **DCA (Decoupled Conditional Advantage)** for RL-
 
 1. **Dilution of the length baseline.** In a mixed group (some correct, some wrong), only correct responses get a length term. Wrong responses have no length penalty, so they pull down the group mean. Correct but concise responses are then **relatively penalized** for being "shorter" than a distorted baseline, so the effective signal is wrong.
 
-2. **Parameter inefficacy.** When all responses in a group are correct, the advantage is normalized (e.g. $(r - \bar{r}) / \sigma$). The length coefficient $\gamma$ gets absorbed by this normalization, so **you cannot stably control length** even when you try to tune $\gamma$.
+2. **Difficulty–penalty mismatch (DDCA).** A static length penalty does not adapt to problem difficulty: hard problems (low pass rate) need less penalty so the model can keep necessary reasoning depth; easy problems (high pass rate) need stronger penalty for efficiency. **DDCA** scales the length advantage by the pass rate ρ = n/G so that hard problems get suppressed length penalty and easy problems get full penalty.
 
-**Idea.** **Decouple correctness and efficiency**: keep a 0/1 correctness reward, and compute a **separate length advantage** only **within the set of correct responses**. That way the length baseline is not diluted by wrong answers, and we can control efficiency via a dedicated coefficient $\beta$.
+3. **Parameter inefficacy.** When all responses in a group are correct, the advantage is normalized (e.g. $(r - \bar{r}) / \sigma$). The length coefficient $\gamma$ gets absorbed by this normalization, so **you cannot stably control length** even when you try to tune $\gamma$.
+
+**Idea.** **Decouple correctness and efficiency**: keep a 0/1 correctness reward, and compute a **separate length advantage** only **within the set of correct responses**. That way the length baseline is not diluted by wrong answers, and we can control efficiency via a dedicated coefficient $\beta$. **DDCA** (default) further multiplies the length advantage by ρ = n/G to adapt to difficulty.
 
 ---
 
 ## Algorithm Details
 
-### DCA-GRPO (group-relative)
+### DCA-GRPO / DDCA-GRPO (group-relative)
 
-For each prompt we have $G$ responses with binary correctness $r_i \in \{0,1\}$ and token lengths $\ell_i$.
+For each prompt we have $G$ responses with binary correctness $r_i \in \{0,1\}$ and token lengths $\ell_i$. Let $n = |\mathcal{S}_c|$ (number of correct responses).
 
 1. **Accuracy advantage** (over all $G$):  
    $A^{\text{acc}}_i = (r_i - \bar{r}) / (\sigma_r + \epsilon)$.
@@ -45,19 +49,19 @@ For each prompt we have $G$ responses with binary correctness $r_i \in \{0,1\}$ 
    - Bounded score: $s_i = \sigma(z_i)$ (sigmoid). Shorter correct responses get higher $s_i$.
 
 3. **Length advantage** (zero-sum within $\mathcal{S}_c$):  
-   $A^{\text{len}}_i = -(s_i - \bar{s})$ for $i \in \mathcal{S}_c$, and 0 otherwise. $\bar{s}$ is the mean of $s$ over $\mathcal{S}_c$.
+   $A^{\text{len}}_i = -(s_i - \bar{s})$ for $i \in \mathcal{S}_c$, and 0 otherwise. **DDCA** (default): multiply by pass rate $\rho = n/G$, i.e. $A^{\text{len}}_i \gets \rho \cdot A^{\text{len}}_i$ for $i \in \mathcal{S}_c$. Hard problems ($\rho \to 0$) get suppressed length term; easy problems ($\rho \to 1$) get full penalty.
 
 4. **Total advantage:**  
    $A_i = A^{\text{acc}}_i + \beta \cdot A^{\text{len}}_i$.  
    $\beta$ (e.g. 0.2) trades off accuracy vs efficiency.
 
-**Implementation:** `dca.advantage.advantage_dca_grpo(correct_mask, lengths, beta)`.
+**Implementation:** `dca.advantage.advantage_dca_grpo(correct_mask, lengths, beta, use_dynamic=True)` (DDCA by default).
 
-### DCA-RLOO (leave-one-out)
+### DCA-RLOO / DDCA-RLOO (leave-one-out)
 
-Same length score $s_i$; accuracy and length advantages use leave-one-out baselines (no normalization). Preferable when group size $G$ is small.
+Same length score $s_i$; accuracy and length advantages use leave-one-out baselines (no normalization). **DDCA**: length advantage scaled by $\rho = n/G$. Preferable when group size $G$ is small.
 
-**Implementation:** `dca.advantage.advantage_dca_rloo(correct_mask, lengths, beta)`.
+**Implementation:** `dca.advantage.advantage_dca_rloo(correct_mask, lengths, beta, use_dynamic=True)`.
 
 ### Baselines (for comparison)
 
@@ -240,7 +244,7 @@ If you add a new dependency, add it to `requirements.txt` with a version constra
 ## Paper Setup & License
 
 **Experiment setup (from the paper).**  
-Models: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B. Training: AIME + MATH ~1:2, 2500 samples. Evaluation: GSM8K, MATH500, AMC23, AIME25. Hyperparameters: temperature 0.6, top_p 0.95, max_tokens 16384; 3 rollouts per problem for GSM8K/MATH500, 10 for AMC/AIME. Metrics: pass@1, pass@10, avg_tokens, AES. Recommended $\beta \approx 0.2$ for DCA.
+Models: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B. Training: AIME + MATH ~1:2, 2500 samples. Evaluation: GSM8K, MATH500, AMC23, AIME25. Hyperparameters: temperature 0.6, top_p 0.95, max_tokens 16384; 3 rollouts per problem for GSM8K/MATH500, 10 for AMC/AIME. Metrics: pass@1, pass@10, avg_tokens, AES. Recommended $\beta \approx 0.2$ for DCA/DDCA. Default is **DDCA** (use_dynamic=True); set use_dynamic=False for original DCA.
 
 **License.**  
 This implementation is for research use. Models and datasets follow their respective licenses.
