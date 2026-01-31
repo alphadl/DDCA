@@ -13,3 +13,4 @@ venv/
 data/processed/
 *.log
 scripts/logs/
+*.zip

@@ -1,20 +1,20 @@
-# VERL 接入 DCA
+# Integrating DCA with VERL
 
-本仓库**不依赖、不 import verl**；`dca.verl_integration` 是供 VERL **调用**的接口（advantage / reward）。你在 [verl](https://github.com/verl-project/verl) 里安装本库，并在 VERL 代码中**增加**一处 `from dca.verl_integration import compute_advantage` 等，即可切换 vanilla / grpo_lp / dca。
+This repository **does not depend on or import verl**. The `dca.verl_integration` module exposes an interface (advantage / reward) that **VERL calls**. Install this package inside your [verl](https://github.com/verl-project/verl) environment and add a single patch in VERL’s code (e.g. `from dca.verl_integration import compute_advantage`) to switch between vanilla / grpo_lp / dca.
 
-## 安装与 patch
+## Installation and patch
 
 ```bash
 cd efficient_reason_DCA && pip install -e .
 ```
 
-在 VERL 中**计算 advantage 的位置**（搜索 `rewards`、`mean`/`std` 或 `grpo`）将：
+In VERL, locate the place where **advantages are computed** (search for `rewards`, `mean`/`std`, or `grpo`). Replace:
 
 ```python
 advantages = (rewards - rewards.mean()) / (rewards.std() + 1e-8)
 ```
 
-改为：
+with:
 
 ```python
 from dca.verl_integration import compute_advantage
@@ -31,16 +31,16 @@ else:
     advantages = (rewards - rewards.mean()) / (rewards.std() + 1e-8)
 ```
 
-Reward 侧：vanilla/dca 用 0/1；grpo_lp 用 `(1 - gamma*length)` if correct else 0。可用 `reward_for_verl(correct, lengths, mode=adv_mode, gamma=gamma)`。
+**Reward side:** vanilla/dca use 0/1; grpo_lp uses `(1 - gamma*length)` if correct else 0. You can use `reward_for_verl(correct, lengths, mode=adv_mode, gamma=gamma)`.
 
-## 运行对照
+## Running baselines
 
 ```bash
-# 本地对比三种 advantage 输出（不装 VERL）
+# Local comparison of the three advantage modes (no VERL required)
 python scripts/run_verl_comparison.py
 
-# 实际跑 VERL 三个 baseline（需已 patch + 数据）
+# Run VERL with all three baselines (requires patch + data)
 RUN_BASELINES=vanilla,grpo_lp,dca ./scripts/run_verl_baselines.sh [overrides]
 ```
 
-配置片段见 `configs/verl/`（vanilla / grpo_lp / dca）。
+Config snippets are in `configs/verl/` (vanilla / grpo_lp / dca).

@@ -1,9 +1,9 @@
 """
 Slime hook: given a batch dict shaped like THUDM/slime rollout + rewards, compute advantages.
 
-Official Slime repo: https://github.com/THUDM/slime
-本包不依赖、不 import slime；集成方向是「Slime 安装本库后，在 Slime 代码里 import 并调用本包」.
-Batch 键名可通过参数配置；Slime Sample 使用 response_length（单条），转成 batch 后可能为 response_lengths 或 response_length，用 length_key 指定.
+Slime repository: https://github.com/THUDM/slime
+This package does not depend on or import slime; Slime installs this package and calls it from Slime code.
+Batch keys are configurable; Slime Sample uses response_length (per item); the batch may use response_lengths or response_length — specify via length_key.
 """
 
 import numpy as np

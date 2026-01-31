@@ -1,40 +1,40 @@
-# Slime 接入 DCA
+# Integrating DCA with Slime
 
-**Slime 官方仓库**：[THUDM/slime](https://github.com/THUDM/slime)（LLM post-training framework for RL scaling，Megatron + SGLang）
+**Slime repository:** [THUDM/slime](https://github.com/THUDM/slime) (LLM post-training framework for RL scaling, Megatron + SGLang).
 
-本仓库**不依赖、不 import slime**；`dca.slime_integration` 是供 Slime **调用**的接口（advantage / reward）。在 [THUDM/slime](https://github.com/THUDM/slime) 中安装本库并按下面方式 patch 后，即可切换 vanilla / grpo_lp / dca。
+This repository **does not depend on or import slime**. The `dca.slime_integration` module exposes an interface (advantage / reward) that **Slime calls**. Install this package in your [THUDM/slime](https://github.com/THUDM/slime) environment and apply the patch below to switch between vanilla / grpo_lp / dca.
 
-## 安装
+## Installation
 
-在 Slime 环境中安装本库（或克隆到同一机器，将 `efficient_reason_DCA` 加入 PYTHONPATH）：
+Install this package in the Slime environment (or clone it and add `efficient_reason_DCA` to `PYTHONPATH`):
 
 ```bash
 cd /path/to/efficient_reason_DCA && pip install -e .
 ```
 
-## Slime 侧数据结构（THUDM/slime）
+## Slime data layout (THUDM/slime)
 
-- **Sample**（`slime.utils.types.Sample`）：单条样本，含 `reward`（float 或 dict）、`response_length`（int）。
-- **Train batch**：由 `list[list[Sample]]` 转成；batch 中通常有 `rewards`、长度数组（可能叫 `response_length` 或 `response_lengths`，取决于 convert 实现）。本库的 `compute_advantage_for_slime` 支持通过 `reward_key`、`length_key` 指定键名。
+- **Sample** (`slime.utils.types.Sample`): single sample with `reward` (float or dict) and `response_length` (int).
+- **Train batch:** built from `list[list[Sample]]`; the batch typically has `rewards` and a length array (key may be `response_length` or `response_lengths` depending on the conversion). This package’s `compute_advantage_for_slime` supports custom keys via `reward_key` and `length_key`.
 
-## Patch 方式
+## Patch instructions
 
-### 1. Advantage 计算
+### 1. Advantage computation
 
-在 Slime 中**计算 GRPO advantage 的位置**（训练后端里对 rewards 做标准化、得到 advantages 的地方），将：
+In Slime, find where **GRPO advantages** are computed (where rewards are normalized to produce advantages). Replace:
 
 ```python
 advantages = (rewards - rewards.mean()) / (rewards.std() + 1e-8)
 ```
 
-改为：
+with:
 
 ```python
 from dca.slime_integration import compute_advantage_for_slime
 
 adv_mode = getattr(args, "adv_mode", None) or "vanilla"
 if adv_mode in ("vanilla", "grpo_lp", "dca", "dca_rloo"):
-    # batch 需包含 rewards 与长度数组；键名与 Slime 的 train data 一致
+    # batch must contain rewards and length array; keys must match Slime train data
     advantages = compute_advantage_for_slime(
         batch,
         adv_mode=adv_mode,
@@ -42,66 +42,66 @@ if adv_mode in ("vanilla", "grpo_lp", "dca", "dca_rloo"):
         gamma=getattr(args, "gamma", 1e-3),
         use_rloo=(adv_mode == "dca_rloo"),
         reward_key="rewards",
-        length_key="response_lengths",  # 或 "response_length"，与 Slime 转成 train data 的 key 一致
+        length_key="response_lengths",  # or "response_length", match Slime’s train data key
         group_size=args.n_samples_per_prompt,
     )
 else:
     advantages = (rewards - rewards.mean()) / (rewards.std() + 1e-8)
 ```
 
-若 Slime 通过 `--custom-pg-loss-reducer-function-path` 等扩展点注入自定义逻辑，也可在该扩展中调用 `compute_advantage_for_slime`，再返回或写回 advantages。
+If Slime uses a custom entry point (e.g. `--custom-pg-loss-reducer-function-path`), you can call `compute_advantage_for_slime` there and return the advantages.
 
-### 2. Reward 侧
+### 2. Reward side
 
-在 Slime 的 reward 函数（如 `--custom-rm-path` 指定的自定义 RM）中，按 mode 生成标量 reward：
+In Slime’s reward function (e.g. a custom RM specified by `--custom-rm-path`), produce a scalar reward by mode:
 
-- **vanilla / dca**：0/1（仅正确性），长度在 advantage 里用 DCA 处理。
-- **grpo_lp**：(1 - gamma*length) if correct else 0。
+- **vanilla / dca:** 0/1 (correctness only); length is handled in the DCA advantage.
+- **grpo_lp:** (1 - gamma*length) if correct else 0.
 
-可直接使用本库接口：
+You can use this package’s interface:
 
 ```python
 from dca.slime_integration import reward_for_slime
 
-# 在 custom RM 或 reward 后处理里，对每条 sample：
-correct = ...   # 是否答对
+# In custom RM or reward post-processing, for each sample:
+correct = ...   # whether the answer is correct
 length = sample.response_length
 reward = reward_for_slime(np.array([correct]), np.array([length]), mode=adv_mode, gamma=gamma)[0]
 ```
 
-Slime 的 `--custom-reward-post-process-path` 若用于对整组 reward 做后处理，也可在其中调用 `reward_for_slime` 生成 0/1 或耦合 reward，再交给默认或 DCA 的 advantage。
+If Slime’s `--custom-reward-post-process-path` is used for batch reward post-processing, you can call `reward_for_slime` there to produce 0/1 or coupled rewards for the default or DCA advantage.
 
-### 3. 命令行 / 配置
+### 3. Command line / config
 
-在 Slime 启动参数中增加（或通过 config 传入）例如：
+Add to Slime’s launch arguments or config, for example:
 
-- `--adv-mode dca`（或 vanilla / grpo_lp）
-- `--beta 0.2`（DCA 时）
-- `--gamma 0.001`（grpo_lp 时）
+- `--adv-mode dca` (or vanilla / grpo_lp)
+- `--beta 0.2` (for DCA)
+- `--gamma 0.001` (for grpo_lp)
 
-具体参数名以 THUDM/slime 的 `slime.utils.arguments` 为准；若暂无 `adv_mode`，可在 patch 处用环境变量或自定义 config 读取。
+Exact argument names follow THUDM/slime’s `slime.utils.arguments`. If `adv_mode` is not yet defined, read it in the patch from an environment variable or custom config.
 
-## 一键运行三 baseline
+## Running all three baselines
 
 ```bash
-# 本地对比三种 advantage 输出（不装 Slime）
+# Local comparison of the three advantage modes (no Slime required)
 python scripts/run_verl_comparison.py
 
-# 在 Slime 仓库根目录下，已 patch 且配置好数据/模型后，可循环跑三组实验（需自行补全 Slime 所需参数）：
-RUN_BASELINES=vanilla,grpo_lp,dca ./scripts/run_slime_baselines.sh [你的 Slime 参数...]
+# From Slime repo root, after patch and data/config are set, run all three (add Slime args as needed):
+RUN_BASELINES=vanilla,grpo_lp,dca ./scripts/run_slime_baselines.sh [your Slime args...]
 ```
 
-`run_slime_baselines.sh` 默认执行 `SLIME_CMD`（默认 `python train.py`），并依次设置环境变量 `ADV_MODE=vanilla`、`grpo_lp`、`dca` 后启动；在 Slime 的 advantage 计算 patch 中可用 `os.environ.get("ADV_MODE", "vanilla")` 读取，再调用 `compute_advantage_for_slime(..., adv_mode=...)`。若 Slime 使用脚本启动（如 `bash scripts/run-glm4-9B.sh`），可设置：
+`run_slime_baselines.sh` runs `SLIME_CMD` (default `python train.py`) and sets `ADV_MODE=vanilla`, then `grpo_lp`, then `dca`. In the Slime advantage patch, read `os.environ.get("ADV_MODE", "vanilla")` and pass it to `compute_advantage_for_slime(..., adv_mode=...)`. If Slime is started via a script (e.g. `bash scripts/run-glm4-9B.sh`), set:
 
 ```bash
 export SLIME_CMD="bash scripts/run-glm4-9B.sh"
 ./scripts/run_slime_baselines.sh
 ```
 
-并在该脚本内通过环境变量或追加参数传入 `adv_mode`、`beta` 等。
+and pass `adv_mode`, `beta`, etc. via environment or extra arguments inside that script.
 
-## 数据准备
+## Data preparation
 
-与主分支一致：`python scripts/prepare_data.py --output_dir data/processed [--builtin_only]` 得到 `train.parquet` 等；Slime 使用 `--prompt-data` 指向 JSONL 等格式，需自行从本库的 parquet/jsonl 转为 Slime 所需格式，或使用 Slime 文档中的数据格式。
+Same as the main README: `python scripts/prepare_data.py --output_dir data/processed [--builtin_only]` produces `train.parquet` etc. Slime may expect `--prompt-data` pointing to JSONL; convert from this repo’s parquet/jsonl to Slime’s format, or follow Slime’s data format documentation.
 
-配置片段见本库 `configs/slime/`（vanilla / grpo_lp / dca），内容可作为 Slime 侧 `adv_mode`、`beta`、`gamma` 的参考。
+Config snippets are in `configs/slime/` (vanilla / grpo_lp / dca) and can be used as reference for `adv_mode`, `beta`, and `gamma`.

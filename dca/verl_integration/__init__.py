@@ -1,8 +1,8 @@
 """
-VERL 接入层：统一 advantage / reward 接口，供 VERL 侧 patch 后调用。
+VERL integration: unified advantage / reward interface for VERL to call after patching.
 
-本包不依赖、不 import verl；集成方向是「VERL 安装本库后，在 VERL 代码里 import 并调用本包」。
-在 VERL 中计算 advantage 的位置 patch 为：
+This package does not depend on or import verl; VERL installs this package and calls it from VERL code.
+Patch VERL at the place where advantages are computed:
 
   from dca.verl_integration import compute_advantage, reward_for_verl
 

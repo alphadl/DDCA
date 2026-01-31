@@ -1,6 +1,8 @@
 # DCA / DDCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-Implementation and scripts for **DCA (Decoupled Conditional Advantage)** and **DDCA (Dynamic Decoupled Conditional Advantage)** for RL-based reasoning (e.g. GRPO/RLOO). This repo provides the **advantage computation** and **evaluation metrics**; it does **not** include a full RL training loop or depend on any specific framework. We provide adapters for [verl](https://github.com/verl-project/verl) and [THUDM/slime](https://github.com/THUDM/slime) so you can plug DCA/DDCA into your existing trainer.
+**Code accompanying the submission to TACL (Transactions of the Association for Computational Linguistics).**
+
+This repository contains the implementation and scripts for **DCA (Decoupled Conditional Advantage)** and **DDCA (Dynamic Decoupled Conditional Advantage)** for RL-based reasoning (e.g. GRPO/RLOO). It provides **advantage computation** and **evaluation metrics** only; it does **not** include a full RL training loop or depend on any specific framework. Adapters for [verl](https://github.com/verl-project/verl) and [THUDM/slime](https://github.com/THUDM/slime) are included so that DCA/DDCA can be plugged into an existing trainer.
 
 **DDCA** (default): scales the length advantage by the group pass rate ρ = n/G (Difficulty-Aware Coefficient). Hard problems (ρ→0) get less length penalty so the model focuses on accuracy; easy problems (ρ→1) get full length penalty for efficiency. Set `use_dynamic=False` for original DCA.
 
@@ -14,8 +16,8 @@ Implementation and scripts for **DCA (Decoupled Conditional Advantage)** and **D
 - [How to Reproduce (Full Pipeline)](#how-to-reproduce-full-pipeline)
 - [How to Evaluate](#how-to-evaluate)
 - [Project Structure](#project-structure)
-- [How to Contribute](#how-to-contribute)
-- [Paper Setup & License](#paper-setup--license)
+- [Extending the Code](#extending-the-code)
+- [Experiment Setup & License](#experiment-setup--license)
 
 ---
 
@@ -204,7 +206,8 @@ efficient_reason_DCA/
 │   ├── verify_dca.py          # Check formulas (parameter inefficacy, zero-sum length)
 │   ├── cpu_mini_validate.py   # Toy policy: DCA vs coupled LP (CPU only)
 │   ├── train_dca.py           # Dry-run API check for DCA in a training loop
-│   └── run_tests.py           # Run all unit tests
+│   ├── run_tests.py           # Run all unit tests
+│   └── create_anonymous_submission.sh  # Package code for submission (zip, no .git)
 ├── configs/
 │   ├── experiment.yaml        # Paper-like training/eval config
 │   ├── verl/                  # VERL config snippets (vanilla, grpo_lp, dca)
@@ -223,28 +226,36 @@ efficient_reason_DCA/
 
 ---
 
-## How to Contribute
+## Extending the Code
 
-We welcome bug fixes, clearer docs, and small extensions that stay aligned with the paper.
+To modify or extend the code:
 
-1. **Fork and clone** the repo; create a branch for your change.
-2. **Run tests** before submitting:  
+1. **Run tests** before any change:  
    `python scripts/run_tests.py`  
-   (or `pytest tests/ -v` if you use pytest). All tests should pass.
-3. **Optional checks:**  
-   - Formula sanity: `python scripts/verify_dca.py`  
-   - Tiny DCA vs LP: `python scripts/cpu_mini_validate.py`
-4. **Code style:** Keep the existing style (e.g. NumPy for arrays, type hints where helpful). No need for a heavy formatter unless the project adds one later.
-5. **Open a Pull Request** against `main` with a short description of the change and, if relevant, how you ran evaluation.
-
-If you add a new dependency, add it to `requirements.txt` with a version constraint.
+   (or `pytest tests/ -v`). All tests should pass.
+2. **Optional sanity checks:**  
+   - Formula verification: `python scripts/verify_dca.py`  
+   - Toy DCA vs LP comparison: `python scripts/cpu_mini_validate.py`
+3. **Code style:** NumPy for arrays; type hints where helpful. New dependencies should be added to `requirements.txt` with a version constraint.
 
 ---
 
-## Paper Setup & License
+## Experiment Setup & License
 
-**Experiment setup (from the paper).**  
+**Experiment setup (as in the paper).**  
 Models: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B. Training: AIME + MATH ~1:2, 2500 samples. Evaluation: GSM8K, MATH500, AMC23, AIME25. Hyperparameters: temperature 0.6, top_p 0.95, max_tokens 16384; 3 rollouts per problem for GSM8K/MATH500, 10 for AMC/AIME. Metrics: pass@1, pass@10, avg_tokens, AES. Recommended $\beta \approx 0.2$ for DCA/DDCA. Default is **DDCA** (use_dynamic=True); set use_dynamic=False for original DCA.
 
 **License.**  
-This implementation is for research use. Models and datasets follow their respective licenses.
+This implementation is for research use. Third-party models and datasets follow their respective licenses.
+
+---
+
+## Creating the submission archive
+
+To package the code for submission (e.g. as a zip for anonymous review), run from the repository root:
+
+```bash
+./scripts/create_anonymous_submission.sh
+```
+
+This creates `efficient_reason_DCA_submission.zip` in the repo root; unzipping it yields a single top-level folder with all source files (`.git` and cache artifacts are excluded).
