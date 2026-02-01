@@ -1,7 +1,5 @@
 # DCA / DDCA: Decoupled Conditional Advantage for Efficient Reasoning
 
-**Code accompanying the submission to TACL (Transactions of the Association for Computational Linguistics).**
-
 This repository contains the implementation and scripts for **DCA (Decoupled Conditional Advantage)** and **DDCA (Dynamic Decoupled Conditional Advantage)** for RL-based reasoning (e.g. GRPO/RLOO). It provides **advantage computation** and **evaluation metrics** only; it does **not** include a full RL training loop or depend on any specific framework. Adapters for [verl](https://github.com/verl-project/verl) and [THUDM/slime](https://github.com/THUDM/slime) are included so that DCA/DDCA can be plugged into an existing trainer.
 
 **DDCA** (default): scales the length advantage by the group pass rate ρ = n/G (Difficulty-Aware Coefficient). Hard problems (ρ→0) get less length penalty so the model focuses on accuracy; easy problems (ρ→1) get full length penalty for efficiency. Set `use_dynamic=False` for original DCA.
