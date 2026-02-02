@@ -1,16 +1,13 @@
-# DCA experiment config (paper Section 5)
-# Models: DeepSeek-R1-Distill-Qwen-1.5B, DeepScaleR-1.5B-Preview
-# Training: AIME–AMC subset (Prime/Cui et al.), 2470 samples
-# Small pipeline: run scripts/prepare_data.py -> data/processed/train.parquet, val.jsonl; then run_full_pipeline.sh
+# DCA experiment config
 
 training:
   dataset:
-    - path: data/aime_amc_train.jsonl   # AIME–AMC subset from Prime (Cui et al.); or data/processed/train.parquet
+    - path: data/aime_amc_train.jsonl
       weight: 1
   total_samples: 2470
-  group_size: 8          # 8 responses per prompt (paper Appendix)
-  algorithm: grpo        # grpo | rloo
-  beta: 0.2              # length penalty (Section 7.5: 0.2–0.5)
+  group_size: 8
+  algorithm: grpo
+  beta: 0.2
   max_tokens: 16384
   temperature: 0.6
   top_p: 0.95
@@ -32,6 +29,6 @@ evaluation:
 
 metrics:
   - pass@1
-  - pass@10   # for AMC/AIME with 16 rollouts
+  - pass@10
   - avg_tokens
-  - aes       # requires baseline run
+  - aes
