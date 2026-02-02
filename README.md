@@ -205,7 +205,7 @@ efficient_reason_DCA/
 │   ├── cpu_mini_validate.py   # Toy policy: DCA vs coupled LP (CPU only)
 │   ├── train_dca.py           # Dry-run API check for DCA in a training loop
 │   ├── run_tests.py           # Run all unit tests
-│   └── create_anonymous_submission.sh  # Package code for submission (zip, no .git)
+│   └── create_archive.sh  # Package code as zip (no .git)
 ├── configs/
 │   ├── experiment.yaml        # Paper-like training/eval config
 │   ├── verl/                  # VERL config snippets (vanilla, grpo_lp, dca)
@@ -248,12 +248,12 @@ This implementation is for research use. Third-party models and datasets follow 
 
 ---
 
-## Creating the submission archive
+## Packaging the repository
 
-To package the code for submission (e.g. as a zip for anonymous review), run from the repository root:
+To package the code as a zip, run from the repository root:
 
 ```bash
-./scripts/create_anonymous_submission.sh
+./scripts/create_archive.sh
 ```
 
-This creates `efficient_reason_DCA_submission.zip` in the repo root; unzipping it yields a single top-level folder with all source files (`.git` and cache artifacts are excluded).
+This creates `efficient_reason_DCA.zip` in the repo root; unzipping it yields a single top-level folder with all source files (`.git` and cache artifacts are excluded).

@@ -155,7 +155,7 @@ def advantage_dca_rloo(
 
 
 def advantage_vanilla_grpo(rewards: np.ndarray, eps: float = 1e-8) -> np.ndarray:
-    """Standard GRPO advantage: (r_i - mean(r)) / (std(r) + eps)."""
+    """(r - mean(r)) / (std(r) + eps)."""
     mu = np.mean(rewards)
     sigma = np.std(rewards)
     if sigma < eps:
@@ -170,7 +170,7 @@ def rewards_coupled_lp(
 ) -> np.ndarray:
     """
     Coupled reward with length penalty: r = (1 - gamma*|o|) if correct else 0.
-    Used for baseline GRPO+LP (Eq. 5).
+    Used for baseline GRPO+LP.
     """
     r = np.zeros(len(correct_mask), dtype=np.float64)
     r[correct_mask] = 1.0 - gamma * lengths[correct_mask]
