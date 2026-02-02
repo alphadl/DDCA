@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create a zip archive of the repository for anonymous submission (e.g. TACL).
+# Create a zip archive of the repository for anonymous submission (e.g. ACL 2026).
 # Excludes .git and common non-source files so reviewers get a clean code snapshot.
 # The archive has one top-level folder so unzipping yields ./efficient_reason_DCA/...
 

@@ -1,18 +1,16 @@
 # DCA experiment config (paper Section 5)
-# Models: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B
-# Training: AIME + MATH ~1:2, 2500 samples
+# Models: DeepSeek-R1-Distill-Qwen-1.5B, DeepScaleR-1.5B-Preview
+# Training: AIME–AMC subset (Prime/Cui et al.), 2470 samples
 # Small pipeline: run scripts/prepare_data.py -> data/processed/train.parquet, val.jsonl; then run_full_pipeline.sh
 
 training:
   dataset:
-    - path: data/aime_train.jsonl   # placeholder; or data/processed/train.parquet from prepare_data.py
+    - path: data/aime_amc_train.jsonl   # AIME–AMC subset from Prime (Cui et al.); or data/processed/train.parquet
       weight: 1
-    - path: data/math_train.json
-      weight: 2
-  total_samples: 2500
-  group_size: 4          # G in GRPO
+  total_samples: 2470
+  group_size: 8          # 8 responses per prompt (paper Appendix)
   algorithm: grpo        # grpo | rloo
-  beta: 0.2              # length penalty (Section 7.3 sweet spot)
+  beta: 0.2              # length penalty (Section 7.5: 0.2–0.5)
   max_tokens: 16384
   temperature: 0.6
   top_p: 0.95
@@ -21,19 +19,19 @@ evaluation:
   datasets:
     gsm8k:
       path: data/gsm8k_test.jsonl
-      rollouts: 3
+      rollouts: 4
     math500:
       path: data/math500_test.json
-      rollouts: 3
+      rollouts: 4
     amc23:
       path: data/amc23_test.jsonl
-      rollouts: 10
+      rollouts: 16
     aime25:
       path: data/aime25_test.jsonl
-      rollouts: 10
+      rollouts: 16
 
 metrics:
   - pass@1
-  - pass@10   # for AMC/AIME with 10 rollouts
+  - pass@10   # for AMC/AIME with 16 rollouts
   - avg_tokens
   - aes       # requires baseline run

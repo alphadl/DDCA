@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Prepare small dataset for DCA pipeline (paper: AIME + MATH ~1:2, 2500; we use smaller).
+Prepare small dataset for DCA pipeline (paper: AIME–AMC subset from Prime, 2470; we use smaller for demo).
 
 Outputs:
   - data_dir/train.parquet, val.parquet (verl format: prompt, reward_model.ground_truth, data_source, ability)
@@ -129,7 +129,7 @@ def builtin_samples_gsm8k():
 def main():
     parser = argparse.ArgumentParser(description="Prepare small dataset for DCA pipeline")
     parser.add_argument("--output_dir", type=str, default="data/processed", help="Output directory")
-    parser.add_argument("--train_size", type=int, default=500, help="Max training samples (paper 2500)")
+    parser.add_argument("--train_size", type=int, default=500, help="Max training samples (paper 2470)")
     parser.add_argument("--val_size", type=int, default=100, help="Validation/test samples")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--use_math", action="store_true", help="Try to add MATH (1:2 with GSM8K if available)")
@@ -139,7 +139,7 @@ def main():
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    # Paper: AIME + MATH ~1:2, 2500. We use GSM8K as proxy for small pipeline; optionally MATH.
+    # Paper: AIME–AMC subset from Prime, 2470. We use GSM8K as proxy for small pipeline; optionally MATH.
     train_rows_parquet = []
     train_rows_jsonl = []
     val_rows_parquet = []

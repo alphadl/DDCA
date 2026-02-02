@@ -106,7 +106,7 @@ def advantage_dca_grpo(
         s_bar = np.mean(s_correct)
         A_len[correct_mask] = -(s[correct_mask] - s_bar)
         if use_dynamic:
-            # DDCA: scale by pass rate ρ = n/N (Difficulty-Aware Coefficient)
+            # DDCA: scale by pass rate ρ = n/G (Difficulty-Aware Coefficient)
             rho = n / G
             A_len[correct_mask] *= rho
 

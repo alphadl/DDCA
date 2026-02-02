@@ -1,5 +1,7 @@
 # DCA / DDCA: Decoupled Conditional Advantage for Efficient Reasoning
 
+**Code accompanying the submission to ACL 2026.**
+
 This repository contains the implementation and scripts for **DCA (Decoupled Conditional Advantage)** and **DDCA (Dynamic Decoupled Conditional Advantage)** for RL-based reasoning (e.g. GRPO/RLOO). It provides **advantage computation** and **evaluation metrics** only; it does **not** include a full RL training loop or depend on any specific framework. Adapters for [verl](https://github.com/verl-project/verl) and [THUDM/slime](https://github.com/THUDM/slime) are included so that DCA/DDCA can be plugged into an existing trainer.
 
 **DDCA** (default): scales the length advantage by the group pass rate ρ = n/G (Difficulty-Aware Coefficient). Hard problems (ρ→0) get less length penalty so the model focuses on accuracy; easy problems (ρ→1) get full length penalty for efficiency. Set `use_dynamic=False` for original DCA.
@@ -241,7 +243,7 @@ To modify or extend the code:
 ## Experiment Setup & License
 
 **Experiment setup (as in the paper).**  
-Models: Qwen3-1.7B, DeepSeek-R1-Distill-Qwen-1.5B. Training: AIME + MATH ~1:2, 2500 samples. Evaluation: GSM8K, MATH500, AMC23, AIME25. Hyperparameters: temperature 0.6, top_p 0.95, max_tokens 16384; 3 rollouts per problem for GSM8K/MATH500, 10 for AMC/AIME. Metrics: pass@1, pass@10, avg_tokens, AES. Recommended $\beta \approx 0.2$ for DCA/DDCA. Default is **DDCA** (use_dynamic=True); set use_dynamic=False for original DCA.
+Models: DeepSeek-R1-Distill-Qwen-1.5B, DeepScaleR-1.5B-Preview. Training: AIME–AMC subset (Prime/Cui et al.), 2470 samples. Evaluation: GSM8K, MATH500, AMC23, AIME25. Hyperparameters: temperature 0.6, top_p 0.95, max_tokens 16384; 4 rollouts for GSM8K/MATH500, 16 for AMC23/AIME25. Metrics: pass@1, pass@10, avg_tokens, AES. Recommended $\beta \approx 0.2$ for DCA/DDCA. Default is **DDCA** (use_dynamic=True); set use_dynamic=False for original DCA.
 
 **License.**  
 This implementation is for research use. Third-party models and datasets follow their respective licenses.
