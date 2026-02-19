@@ -6,10 +6,10 @@ This repository **does not depend on or import slime**. The `dca.slime_integrati
 
 ## Installation
 
-Install this package in the Slime environment (or clone it and add `efficient_reason_DCA` to `PYTHONPATH`):
+Install this package in the Slime environment (or clone it and add `DDCA` to `PYTHONPATH`):
 
 ```bash
-cd /path/to/efficient_reason_DCA && pip install -e .
+cd /path/to/DDCA && pip install -e .
 ```
 
 ## Slime data layout (THUDM/slime)

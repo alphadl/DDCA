@@ -76,7 +76,7 @@ Same length score $s_i$; accuracy and length advantages use leave-one-out baseli
 **1. Clone and install**
 
 ```bash
-cd efficient_reason_DCA
+cd DDCA
 pip install -r requirements.txt
 ```
 
@@ -186,7 +186,7 @@ Math answer equivalence uses normalization (strip, lower, extract `####` or `\bo
 ## Project Structure
 
 ```
-efficient_reason_DCA/
+DDCA/
 ├── dca/
 │   ├── advantage.py           # DCA-GRPO, DCA-RLOO, length_score_z_sigmoid, baselines
 │   ├── metrics.py             # pass@k, AES, compute_accuracy, compute_avg_tokens

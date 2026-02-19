@@ -5,7 +5,7 @@ This repository **does not depend on or import verl**. The `dca.verl_integration
 ## Installation and patch
 
 ```bash
-cd efficient_reason_DCA && pip install -e .
+cd DDCA && pip install -e .
 ```
 
 In VERL, locate the place where **advantages are computed** (search for `rewards`, `mean`/`std`, or `grpo`). Replace:
