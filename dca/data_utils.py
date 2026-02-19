@@ -77,7 +77,7 @@ def load_gsm8k(path: str) -> List[Dict[str, Any]]:
 def load_math(path: str) -> List[Dict[str, Any]]:
     """Load MATH (level, problem, solution with final answer)."""
     path = Path(path)
-    data = []
+    out = []
     with open(path) as f:
         raw = json.load(f)
     for item in (raw if isinstance(raw, list) else raw.get("data", [])):

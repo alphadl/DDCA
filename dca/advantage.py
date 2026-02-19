@@ -21,9 +21,10 @@ def is_correct(pred: str, gt: str, equiv_fn: Optional[Callable[[str, str], bool]
     if pred == gt:
         return True
     # Try extracting numeric answer (e.g. "#### 64" -> "64")
-    for s in (pred, gt):
-        if "####" in s:
-            s = s.split("####")[-1].strip()
+    if "####" in pred:
+        pred = pred.split("####")[-1].strip()
+    if "####" in gt:
+        gt = gt.split("####")[-1].strip()
     return pred == gt
 
 
