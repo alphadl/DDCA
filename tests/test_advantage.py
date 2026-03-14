@@ -82,3 +82,11 @@ class TestAdvantage(unittest.TestCase):
     def test_is_correct(self):
         self.assertTrue(is_correct("64", "64"))
         self.assertFalse(is_correct("65", "64"))
+
+    def test_dca_rloo_g1_no_crash(self):
+        """advantage_dca_rloo with G=1 should not crash or return NaN (no LOO baseline)."""
+        correct_mask = np.array([True])
+        lengths = np.array([100])
+        adv = advantage_dca_rloo(correct_mask, lengths, beta=0.2)
+        self.assertEqual(adv.shape, (1,))
+        self.assertTrue(np.all(np.isfinite(adv)))

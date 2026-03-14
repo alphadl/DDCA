@@ -132,7 +132,9 @@ def advantage_dca_rloo(
     r_acc = correct_mask.astype(np.float64)
     A_acc = np.zeros(G, dtype=np.float64)
     for i in range(G):
-        others = np.array([j for j in range(G) if j != i])
+        others = [j for j in range(G) if j != i]
+        if not others:
+            continue  # G=1: no leave-one-out baseline; advantage stays 0
         A_acc[i] = r_acc[i] - np.mean(r_acc[others])
 
     s = length_score_z_sigmoid(lengths, correct_mask, eps)

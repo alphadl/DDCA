@@ -75,12 +75,14 @@ def evaluate(results: list, k: int = 1) -> dict:
     pass_at_k_val = pass_at_k_multi(n_rollouts, num_correct_per_problem, min(k, n_rollouts))
     avg_tokens = compute_avg_tokens(all_lengths) if all_lengths else 0.0
 
-    return {
+    out = {
         "pass@1": pass_at_1,
-        f"pass@{k}": pass_at_k_val,
         "avg_tokens": avg_tokens,
         "num_samples": len(results),
     }
+    if k > 1:
+        out[f"pass@{k}"] = pass_at_k_val
+    return out
 
 
 def main():
