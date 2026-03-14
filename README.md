@@ -78,6 +78,8 @@ Same length score $s_i$; accuracy and length advantages use leave-one-out baseli
 ```bash
 cd DDCA
 pip install -r requirements.txt
+# Optional: for VERL/Slime integration use editable install
+pip install -e .
 ```
 
 **2. One command** (prepare data → demo inference → evaluate; runs in seconds with built-in samples):

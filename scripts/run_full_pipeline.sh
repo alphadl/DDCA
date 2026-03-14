@@ -15,9 +15,15 @@ RESULTS_FILE="${RESULTS_FILE:-}"   # If set, skip demo and use this for evaluati
 
 echo "=== DCA full pipeline (data_dir=$DATA_DIR, train=$TRAIN_SIZE, val=$VAL_SIZE) ==="
 
+# Prefer python3 for portability (e.g. when python is python2)
+PYTHON="${PYTHON:-python3}"
+if ! command -v "$PYTHON" &>/dev/null; then
+  PYTHON=python
+fi
+
 # Step 1: Prepare data (parquet + jsonl)
 echo "[1/3] Preparing data..."
-python scripts/prepare_data.py \
+"$PYTHON" scripts/prepare_data.py \
   --output_dir "$DATA_DIR" \
   --train_size "$TRAIN_SIZE" \
   --val_size "$VAL_SIZE" \
@@ -32,7 +38,7 @@ if [ -n "$RESULTS_FILE" ] && [ -f "$RESULTS_FILE" ]; then
 else
   echo "[2/3] Demo inference (no VERL); for real training run VERL with $DATA_DIR/train.parquet"
   EVAL_RESULTS="$DATA_DIR/results_demo.jsonl"
-  python scripts/demo_inference.py \
+  "$PYTHON" scripts/demo_inference.py \
     --input "$DATA_DIR/val.jsonl" \
     --output "$EVAL_RESULTS" \
     --seed "$SEED" \
@@ -42,7 +48,7 @@ fi
 
 # Step 3: Evaluate
 echo "[3/3] Evaluating..."
-python scripts/evaluate.py --results "$EVAL_RESULTS" --k 1
+"$PYTHON" scripts/evaluate.py --results "$EVAL_RESULTS" --k 1
 
 echo "=== Pipeline done. ==="
 echo "  Data: $DATA_DIR (train.parquet, val.jsonl, test_gsm8k.jsonl)"
